@@ -1,0 +1,28 @@
+#cloud-config
+
+users:
+  - name: root
+    shell: /bin/bash
+    ssh-authorized-keys:
+      - ...
+    ssh_pwauth: False
+
+## changing account passwords happen here.
+
+#chpasswd:
+#  list: |
+#    root:toor
+#    develop:develop
+#  expire: False
+
+package_update: true
+
+packages:
+  - git
+  - ansible
+
+runcmd:
+  - ssh-keygen -A
+
+
+final_message: "The system is finally up, after $UPTIME seconds"
