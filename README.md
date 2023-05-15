@@ -27,3 +27,8 @@ Dans le cloud-init, ansible doit prendre le relais !
 
 ### Et maintenant, ansible
 
+On peut lancer le playbook ansible d'un repo git en une commande
+
+```
+ansible-pull -u https://github.com/yattoz/calvinball-server-setup playbook.yml --verbose
+```

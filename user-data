@@ -1,28 +1,43 @@
 #cloud-config
 
+## let's define all users here.
 users:
   - name: root
     shell: /bin/bash
-    ssh-authorized-keys:
-      - ...
     ssh_pwauth: False
+  - name: admin
+    groups: sudo
+    sudo: 
+      - ALL=(ALL) NOPASSWD:/sbin/reboot
+      - ALL=(ALL) ALL
+    shell: /bin/bash
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDMUG8xiL39IvpZtF7bI9DfDJzCygR5LG0pkbo5BOelo3dUIv30dAdEbg4S3VPIjhHC4/WdU76QAKSJAQUUNWaO7DiFb8Ugpku660nxW8uKnLbKq2z/cNocILUCAtP5bOs0pEW3cPmm6xDnnlf24YliCliFDf4czn08sO7uCg+B2ZaEGUegjo0bjDoygN9RK7XSltcvGkv3ZrJJBw3+156oAYNVeVE/raZR/F5Cjg9B4u7gwrnqypykifeA2nQY4BJvgwq+cbu6l+fCwttrXrUatpkBvrDxtwNPTxV8A0K466DjplZ0KRRpgoydY8gAfmwmwGzewSNz3dwEaxg307HNb9oU1xUCr5Yuva4lTCypGXmhGqPlGbCa41Ej2piL/al/KexBL3lckkbDSbvSfW1E5dvPWWAcSUbCO2osolSpfXXEmYvUfAllPj6OP9bBSDBKC89sa+v8DiZsKqU9zhma32qK4WHqHCcuMyK1asLpxZAdFPELJZ78anz/pV7f/S8= yattoz@BELIAL
+
 
 ## changing account passwords happen here.
 
-#chpasswd:
-#  list: |
-#    root:toor
-#    develop:develop
-#  expire: False
+chpasswd:
+  list: |
+    root:toor
+    admin:admin
+  expire: False
 
 package_update: true
 
 packages:
   - git
+  - curl
   - ansible
 
+# the ansible playbook is public. It will create users, install packages and set up file permission for us.
+# for development, we point to the local web server in the cloud-init.
+# deployment node may simply run ansible without cloud-init.
 runcmd:
   - ssh-keygen -A
+  - curl -L http://10.0.2.2:8000/playbook.yml -o playbook.yml
+  - ansible-playbook playbook.yml --verbose
+#  - ansible-pull -u https://github.com/yattoz/calvinball-server-setup playbook.yml --verbose
 
 
-final_message: "The system is finally up, after $UPTIME seconds"
+final_message: "The system is up, after $UPTIME seconds. Please remember to change all users passwords."
