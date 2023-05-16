@@ -1,0 +1,27 @@
+podcast_keys:
+  - calvinball
+  - calweebball
+  - capycast
+  - crousti
+  - enintervalle
+  - histoiresvisuelles
+  - intp-podcast
+  - maitrechien
+  - ksdd
+  - lappeldekathulu
+  - labandeapixel
+  - lebestiairedesbesties
+  - mjee
+  - leretourdujeudi
+  - lesfrancobelges
+  - lesreglesdujeu
+  - ludographie
+  - ludographiecomparee
+  - potirongeur
+  - recommande
+  - variantepourdeux
+
+podcast_group: podcasters
+
+admin_user:
+  - admin

@@ -7,6 +7,7 @@ if "%1"=="--clean" (
 
 if not exist i.qcow2 (
     copy dg.qcow2 i.qcow2
+    "C:\Program Files\QEMU\qemu-img" resize i.qcow2 30G
 ) 
 
 if not exist python (

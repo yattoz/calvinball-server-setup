@@ -4,7 +4,9 @@
 users:
   - name: root
     shell: /bin/bash
-    ssh_pwauth: False
+    ssh_pwauth: True
+    ssh-authorized-keys:
+        - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDMUG8xiL39IvpZtF7bI9DfDJzCygR5LG0pkbo5BOelo3dUIv30dAdEbg4S3VPIjhHC4/WdU76QAKSJAQUUNWaO7DiFb8Ugpku660nxW8uKnLbKq2z/cNocILUCAtP5bOs0pEW3cPmm6xDnnlf24YliCliFDf4czn08sO7uCg+B2ZaEGUegjo0bjDoygN9RK7XSltcvGkv3ZrJJBw3+156oAYNVeVE/raZR/F5Cjg9B4u7gwrnqypykifeA2nQY4BJvgwq+cbu6l+fCwttrXrUatpkBvrDxtwNPTxV8A0K466DjplZ0KRRpgoydY8gAfmwmwGzewSNz3dwEaxg307HNb9oU1xUCr5Yuva4lTCypGXmhGqPlGbCa41Ej2piL/al/KexBL3lckkbDSbvSfW1E5dvPWWAcSUbCO2osolSpfXXEmYvUfAllPj6OP9bBSDBKC89sa+v8DiZsKqU9zhma32qK4WHqHCcuMyK1asLpxZAdFPELJZ78anz/pV7f/S8= yattoz@BELIAL
   - name: admin
     groups: sudo
     sudo: 
@@ -35,7 +37,11 @@ packages:
 # deployment node may simply run ansible without cloud-init.
 runcmd:
   - ssh-keygen -A
+  - cd tmp
+  - mkdir vars
   - curl -L http://10.0.2.2:8000/playbook.yml -o playbook.yml
+  - curl -L http://10.0.2.2:8000/vars/users.yml -o vars/users.yml
+  - curl -L http://10.0.2.2:8000/vars/packages.yml -o vars/packages.yml
   - ansible-playbook playbook.yml --verbose
 #  - ansible-pull -u https://github.com/yattoz/calvinball-server-setup playbook.yml --verbose
 

@@ -1,0 +1,26 @@
+
+
+debian_packages:
+  - nginx-full
+  - python3-certbot-nginx
+  - git
+  - build-essential
+  - curl
+  - autoconf
+  - bison
+  - ruby
+  - ruby-dev
+
+debian_nokogiri_build:
+  - patch
+  - zlib1g-dev
+  - liblzma-dev
+
+debian_rmagick_build:
+  - libmagickwand-dev
+  - imagemagick
+  - pngquant
+
+debian_utilities:
+  - at
+  - cron
