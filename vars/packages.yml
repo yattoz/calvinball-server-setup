@@ -1,8 +1,6 @@
 
 
-debian_packages:
-  - nginx-full
-  - python3-certbot-nginx
+debian_runtime_suite:
   - git
   - build-essential
   - curl
@@ -10,6 +8,7 @@ debian_packages:
   - bison
   - ruby
   - ruby-dev
+  - bundler
 
 debian_nokogiri_build:
   - patch
@@ -24,3 +23,10 @@ debian_rmagick_build:
 debian_utilities:
   - at
   - cron
+
+debian_web_access:
+  - nginx-full
+  - python3-certbot-nginx
+  - cockpit
+
+debian_packages: "{{debian_runtime_suite + debian_nokogiri_build + debian_rmagick_build + debian_utilities + debian_web_access }}"

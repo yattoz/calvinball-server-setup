@@ -28,7 +28,6 @@ chpasswd:
 package_update: true
 
 packages:
-  - git
   - curl
   - ansible
 
@@ -42,8 +41,8 @@ runcmd:
   - curl -L http://10.0.2.2:8000/playbook.yml -o playbook.yml
   - curl -L http://10.0.2.2:8000/vars/users.yml -o vars/users.yml
   - curl -L http://10.0.2.2:8000/vars/packages.yml -o vars/packages.yml
-  - ansible-playbook playbook.yml --verbose
-#  - ansible-pull -u https://github.com/yattoz/calvinball-server-setup playbook.yml --verbose
+  - ansible-playbook playbook.yml -vvv
+#  - ansible-pull -u https://github.com/yattoz/calvinball-server-setup playbook.yml -vvv
 
 
 final_message: "The system is up, after $UPTIME seconds. Please remember to change all users passwords."

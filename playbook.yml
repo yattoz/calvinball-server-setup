@@ -3,6 +3,7 @@
   vars_files:
     - vars/users.yml
     - vars/packages.yml
+
   tasks:
     - name: Ping
       ansible.builtin.ping:
@@ -23,9 +24,33 @@
         password: "{{ item | password_hash('sha512','A512') }}"
         shell: /bin/bash
         group: "{{ podcast_group }}"
-      loop: "{{ podcast_keys + admin_user }}"
+      loop: "{{ podcast_keys + developer_user }}"
 
     - name: Install debian packages
-      ansible.builtin.package: 
+      ansible.builtin.package:
         name: "{{ debian_packages }}"
         state: present
+
+## Now let's clone the repo
+
+## NOTE: you can't clone the repo using git-ssh because no ssh keys are configured.
+## To commit and push you have to add SSH keys, SSH config for github.com and replace the remote url "origin" with the git-ssh URL.
+## very unpractical, but I'll think of a fix to let the dev include their SSH key. (config could be generated on-the-fly though)
+
+    - name: Clone repo
+      become: true
+      become_method: su
+      become_user: developer
+      ansible.builtin.git:
+        repo: https://github.com/yattoz/calvinball-website # git@github.com:yattoz/calvinball-website.git
+        dest: /home/developer
+
+    - name: install ruby dependencies
+      become: true
+      become_method: su
+      become_user: developer
+      ansible.builtin.command:
+        cmd: bundle install
+        chdir: /home/developer/calvinball-website
+
+
