@@ -24,26 +24,83 @@
         password: "{{ item | password_hash('sha512','A512') }}"
         shell: /bin/bash
         group: "{{ podcast_group }}"
-      loop: "{{ podcast_keys + developer_user }}"
+        append: true
+      loop: "{{ podcast_keys }}"
+
+    - name: Create developer user
+      user:
+        name: "{{ item }}"
+        state: present
+        password: "{{ item | password_hash('sha512','A512') }}"
+        shell: /bin/bash
+        generate_ssh_key: true
+        ssh_key_bits: 2048
+        ssh_key_file: /home/{{ item }}/.ssh/id_rsa
+      loop: "{{ developer_users }}"
+
+## install stuff:
 
     - name: Install debian packages
       ansible.builtin.package:
         name: "{{ debian_packages }}"
         state: present
 
+    - name: Install latest hugo-extend
+      ansible.builtin.shell: |
+        curl -L https://github.com/gohugoio/hugo/releases/download/v0.111.3/hugo_extended_0.111.3_linux-amd64.deb -o /tmp/hugo.deb
+        apt-get install -y /tmp/hugo.deb
+        rm /tmp/hugo.deb
+
 ## Now let's clone the repo
 
-## NOTE: you can't clone the repo using git-ssh because no ssh keys are configured.
-## To commit and push you have to add SSH keys, SSH config for github.com and replace the remote url "origin" with the git-ssh URL.
-## very unpractical, but I'll think of a fix to let the dev include their SSH key. (config could be generated on-the-fly though)
+## NOTE: ssh keys are generated above for user "developer", so you should be able to clone github.com without any issue.
+## The git user would not be registered (git config user.name/user.email) and you would still need to register the public key on github to push anything there.
 
-    - name: Clone repo
+    - name: Add a host in the configuration
+      become: true
+      become_user: developer
+      ansible.builtin.copy:
+        content: "Host github.com\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/id_rsa"
+        dest: /home/developer/.ssh/config
+
+    - name: replace id_rsa keys from the ones in /root if they are here
+      when: "'/root/id_rsa' is file"
+      ansible.builtin.shell: |
+        rm /home/developer/.ssh/id_rsa*
+        mv /root/id_rsa* /home/developer/.ssh/
+        chown developer:developer /home/developer/.ssh/*
+        chmod 600 /home/developer/.ssh/*
+        touch /home/developer/.ssh/.custom_keys
+      register: custom_keys
+
+    - name: Register github host key
+      become: true
+      become_user: developer
+      ansible.builtin.command:
+        cmd: ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+
+    - name: Clone repo SSH-based (custom-keys are present)
       become: true
       become_method: su
       become_user: developer
+      when: custom_keys is success
       ansible.builtin.git:
-        repo: https://github.com/yattoz/calvinball-website # git@github.com:yattoz/calvinball-website.git
-        dest: /home/developer
+        repo: git@github.com:yattoz/calvinball-website.git
+        dest: /home/developer/calvinball-website
+        key_file: /home/developer/.ssh/id_rsa
+        accept_hostkey: true
+
+
+    - name: Clone repo HTTPS-based
+      become: true
+      become_method: su
+      become_user: developer
+      when: custom_keys is skipped
+      ansible.builtin.git:
+        repo: git@github.com:yattoz/calvinball-website.git
+        dest: /home/developer/calvinball-website
+        key_file: /home/developer/.ssh/id_rsa
+        # accept_hostkey: true
 
     - name: install ruby dependencies
       become: true
@@ -53,4 +110,19 @@
         cmd: bundle install
         chdir: /home/developer/calvinball-website
 
+    - name: run ruby script to make sure everything works
+      become: true
+      become_method: su
+      become_user: developer
+      ansible.builtin.command:
+        cmd: bundle exec ruby scripts/podcast_resources.rb --nodownload
+        chdir: /home/developer/calvinball-website
 
+    - name: Replace 'origin' HTTP-based remote with SSH-based
+      become: true
+      become_user: developer
+      when: custom_keys is skipped
+      ansible.builtin.shell: |
+        cd /home/developer/calvinball-website
+        git remote rm origin
+        git remote add origin git@github.com:yattoz/calvinball-website.git

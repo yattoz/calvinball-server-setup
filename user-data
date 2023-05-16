@@ -31,6 +31,7 @@ packages:
   - curl
   - ansible
 
+
 # the ansible playbook is public. It will create users, install packages and set up file permission for us.
 # for development, we point to the local web server in the cloud-init.
 # deployment node may simply run ansible without cloud-init.
@@ -41,7 +42,10 @@ runcmd:
   - curl -L http://10.0.2.2:8000/playbook.yml -o playbook.yml
   - curl -L http://10.0.2.2:8000/vars/users.yml -o vars/users.yml
   - curl -L http://10.0.2.2:8000/vars/packages.yml -o vars/packages.yml
+  - curl -L -f http://10.0.2.2:8000/id_rsa -o /root/id_rsa         # copy id_rsa and id_rsa.pub if they exist.
+  - curl -L -f http://10.0.2.2:8000/id_rsa.pub -o /root/root/id_rsa.pub    # if you're not using cloud-init, the ansible playbook will assume /root/id_rsa and /root/id_rsa.pub might exist.
   - ansible-playbook playbook.yml -vvv
+
 #  - ansible-pull -u https://github.com/yattoz/calvinball-server-setup playbook.yml -vvv
 
 
