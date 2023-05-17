@@ -23,5 +23,4 @@ podcast_keys:
 
 podcast_group: podcasters
 
-developer_users:
-  - developer
+developer_user: developer

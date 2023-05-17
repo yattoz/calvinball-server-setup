@@ -3,6 +3,8 @@
   vars_files:
     - vars/users.yml
     - vars/packages.yml
+  vars:
+    install_dir: /opt/calvinball-website
 
   tasks:
     - name: Ping
@@ -11,6 +13,8 @@
     - name: Print message
       ansible.builtin.debug:
         msg: Hello world
+
+  ## user tasks
 
     - name: Create group
       group:
@@ -29,14 +33,13 @@
 
     - name: Create developer user
       user:
-        name: "{{ item }}"
+        name: "{{ developer_user }}"
         state: present
-        password: "{{ item | password_hash('sha512','A512') }}"
+        password: "{{ developer_user | password_hash('sha512','A512') }}"
         shell: /bin/bash
         generate_ssh_key: true
         ssh_key_bits: 2048
-        ssh_key_file: /home/{{ item }}/.ssh/id_rsa
-      loop: "{{ developer_users }}"
+        ssh_key_file: /home/{{ developer_user }}/.ssh/id_rsa
 
 ## install stuff:
 
@@ -70,14 +73,20 @@
         mv /root/id_rsa* /home/developer/.ssh/
         chown developer:developer /home/developer/.ssh/*
         chmod 600 /home/developer/.ssh/*
-        touch /home/developer/.ssh/.custom_keys
       register: custom_keys
 
     - name: Register github host key
       become: true
       become_user: developer
       ansible.builtin.command:
-        cmd: ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+        cmd: ssh-keyscan -t rsa github.com >> /home/developer/.ssh/known_hosts
+
+    - name: Prepare folder for clone
+      ansible.builtin.file: 
+        path: "{{ install_dir }}"
+        state: directory
+        owner: developer
+        group: developer
 
     - name: Clone repo SSH-based (custom-keys are present)
       become: true
@@ -86,21 +95,20 @@
       when: custom_keys is success
       ansible.builtin.git:
         repo: git@github.com:yattoz/calvinball-website.git
-        dest: /home/developer/calvinball-website
+        dest: "{{ install_dir }}"
         key_file: /home/developer/.ssh/id_rsa
         accept_hostkey: true
 
-
-    - name: Clone repo HTTPS-based
+    - name: Fallback - Clone repo HTTPS-based
       become: true
       become_method: su
       become_user: developer
       when: custom_keys is skipped
       ansible.builtin.git:
-        repo: git@github.com:yattoz/calvinball-website.git
-        dest: /home/developer/calvinball-website
+        repo: https://github.com/yattoz/calvinball-website
+        dest: "{{ install_dir }}"
         key_file: /home/developer/.ssh/id_rsa
-        # accept_hostkey: true
+        accept_hostkey: true
 
     - name: install ruby dependencies
       become: true
@@ -108,7 +116,7 @@
       become_user: developer
       ansible.builtin.command:
         cmd: bundle install
-        chdir: /home/developer/calvinball-website
+        chdir: "{{ install_dir }}"
 
     - name: run ruby script to make sure everything works
       become: true
@@ -116,13 +124,43 @@
       become_user: developer
       ansible.builtin.command:
         cmd: bundle exec ruby scripts/podcast_resources.rb --nodownload
-        chdir: /home/developer/calvinball-website
+        chdir: "{{ install_dir }}"
 
     - name: Replace 'origin' HTTP-based remote with SSH-based
       become: true
       become_user: developer
       when: custom_keys is skipped
       ansible.builtin.shell: |
-        cd /home/developer/calvinball-website
+        cd "{{ install_dir }}"
         git remote rm origin
         git remote add origin git@github.com:yattoz/calvinball-website.git
+
+## create cron jobs
+    - name: create cron job for periodic remote checks
+      ansible.builtin.cron:
+        name: "periodic remote checks"
+        user: developer
+        job: "cd \"{{ install_dir }}\" && echo \"start\" > start.log && git pull 2>&1 > git.log && bundle exec ruby scripts/podcast_resources.rb 2>&1 > podcast_resources.log "
+        minute: "13,28,43,58"
+        
+    - name: backup to NAS
+      ansible.builtin.cron:
+        name: "backup to NAS"
+        user: developer
+        job: "{{ install_dir }}/backup_to_nas.sh"
+        minute: "0"
+        hour: "1"
+
+## copy config files in server_config to their location
+
+## create path /var/www/html/calvinballconsortium and create symlinks to useuful folder: audio, dev.dist, dist, image, resources, save (bon pas vraiment besoin de save lul)
+
+## install cockpit module cockpit-navigator (.deb focal, from their github webpage)
+
+## git clone and build the cockpit module
+
+## create symlink  /usr/share/cockpit/cvb-rebuild-website -> /home/yattoz/cockpit-cvb-rebuild-site/dist/ OR make-install it (it's copied to the correct location)
+
+## install systemd service for dbus_watcher
+
+
