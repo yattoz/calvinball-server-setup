@@ -226,6 +226,7 @@
       become_method: su
       become_user: developer
       ansible.builtin.shell: |
+        cd {{ cockpit_module_install_dir }}
         npm install
         make
 
@@ -237,7 +238,7 @@
         dest: "/usr/share/cockpit/cvb-rebuild-site"
         state: link
 
-
+## FIXME: fix cockpit paths to point to /opt/
 
 ## install systemd service for dbus_watcher
 
