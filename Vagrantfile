@@ -5,15 +5,20 @@
 # https://github.com/hashicorp/vagrant/releases/tag/2.3.6.dev%2B68b3d94
 # Installer for Windows: https://github.com/hashicorp/vagrant/releases/download/2.3.6.dev%2B68b3d94/vagrant_2.3.6.dev_windows_amd64.msi
 
+# NOTE THAT HYPER-V DOESNT ALLOW NETWORK COMMANDS, HENCE NO PORT FORWARDING
+# This vagrantfile does not work on Windows if you use Hyper-V.
+
+
 Vagrant.configure("2") do |config|
   config.vm.box = "generic/debian11"
   # config.vm.provider "hyperv"
   config.vm.network "public_network"
 
-  config.vm.network "forwarded_port", guest: 80, host: 8888
-  config.vm.network "forwarded_port", guest: 443, host: 4443
-  config.vm.network "forwarded_port", guest: 9090, host: 9999
-  config.vm.network "forwarded_port", guest: 22, host: 5555
+  config.vm.network "forwarded_port", guest: 80, host: 8880, auto_correct: true
+  config.vm.network "forwarded_port", guest: 443, host: 4444, auto_correct: true
+  config.vm.network "forwarded_port", guest: 9090, host: 9990, auto_correct: true
+  config.vm.network "forwarded_port", guest: 22, host: 2222, auto_correct: true
+
 
   config.vm.provision "shell", inline: "mkdir -p vars ; chown vagrant:vagrant vars"
   config.vm.provision "file", source: "id_rsa", destination: "/tmp/id_rsa"
@@ -32,7 +37,7 @@ Vagrant.configure("2") do |config|
 =end
 
 
-  config.vm.provision "shell", inline: "sudo apt-get install -y ansible"
-  config.vm.provision "shell", inline: "sudo su root -c \"ansible-playbook /home/vagrant/playbook.yml -vvv\""
+  config.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y ansible"
+  config.vm.provision "shell", inline: "sudo su root -c \"ansible-playbook /home/vagrant/playbook.yml -v\""
 
 end
