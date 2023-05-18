@@ -48,11 +48,13 @@
         name: "{{ debian_packages }}"
         state: present
 
+    - name: update cache for aptitude
+      ansible.builtin.apt:
+        update_cache: True
+
     - name: Install latest hugo-extend
-      ansible.builtin.shell: |
-        curl -L https://github.com/gohugoio/hugo/releases/download/v0.111.3/hugo_extended_0.111.3_linux-amd64.deb -o /tmp/hugo.deb
-        apt-get install -y /tmp/hugo.deb
-        rm /tmp/hugo.deb
+      ansible.builtin.apt:
+        deb: https://github.com/gohugoio/hugo/releases/download/v0.111.3/hugo_extended_0.111.3_linux-amd64.deb
 
 ## Now let's clone the repo
 
@@ -66,11 +68,11 @@
         content: "Host github.com\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/id_rsa"
         dest: /home/developer/.ssh/config
 
-    - name: replace id_rsa keys from the ones in /root if they are here
-      when: "'/root/id_rsa' is file"
+    - name: replace id_rsa keys from the ones in /tmp/ if they are here
+      when: "'/tmp/id_rsa' is file"
       ansible.builtin.shell: |
         rm /home/developer/.ssh/id_rsa*
-        mv /root/id_rsa* /home/developer/.ssh/
+        mv /tmp/id_rsa* /home/developer/.ssh/
         chown developer:developer /home/developer/.ssh/*
         chmod 600 /home/developer/.ssh/*
       register: custom_keys
