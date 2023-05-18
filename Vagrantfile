@@ -7,16 +7,32 @@
 
 Vagrant.configure("2") do |config|
   config.vm.box = "generic/debian11"
-  config.vm.provider "hyperv"
+  # config.vm.provider "hyperv"
   config.vm.network "public_network"
 
-  # config.vm.provision "shell", inline: ""
-  config.vm.provision "file", source: "id_rsa", destination: "id_rsa"
-  config.vm.provision "file", source: "id_rsa.pub", destination: "id_rsa.pub"
+  config.vm.network "forwarded_port", guest: 80, host: 8888
+  config.vm.network "forwarded_port", guest: 443, host: 4443
+  config.vm.network "forwarded_port", guest: 9090, host: 9999
+  config.vm.network "forwarded_port", guest: 22, host: 5555
 
+  config.vm.provision "shell", inline: "mkdir -p vars ; chown vagrant:vagrant vars"
+  config.vm.provision "file", source: "id_rsa", destination: "/tmp/id_rsa"
+  config.vm.provision "file", source: "id_rsa.pub", destination: "/tmp/id_rsa.pub"
+  config.vm.provision "file", source: "playbook.yml", destination: "playbook.yml"
+  config.vm.provision "file", source: "vars/users.yml", destination: "vars/users.yml"
+  config.vm.provision "file", source: "vars/packages.yml", destination: "vars/packages.yml"
 
+=begin
   config.vm.provision "ansible_local" do |ansible|
-    ansible.playbook = "~/playbook.yml"
+    ansible.playbook = "/home/vagrant/playbook.yml" # by default, as user, but we change the user below
+    ansible.limit = "all"
+    ansible.compatibility_mode = "2.0"
+    ansible.verbose = "-vvv"
   end
+=end
+
+
+  config.vm.provision "shell", inline: "sudo apt-get install -y ansible"
+  config.vm.provision "shell", inline: "sudo su root -c \"ansible-playbook /home/vagrant/playbook.yml -vvv\""
 
 end
