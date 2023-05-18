@@ -5,6 +5,7 @@
     - vars/packages.yml
   vars:
     install_dir: /opt/calvinball-website
+    cockpit_module_install_dir: /opt/cockpit_modules/cvb-rebuild-site
 
   tasks:
     - name: Ping
@@ -84,12 +85,15 @@
       ansible.builtin.command:
         cmd: ssh-keyscan -t rsa github.com >> /home/developer/.ssh/known_hosts
 
-    - name: Prepare folder for clone
+    - name: Prepare folders for clone
       ansible.builtin.file: 
-        path: "{{ install_dir }}"
+        path: "{{ item }}"
         state: directory
         owner: developer
         group: developer
+      loop:
+        - "{{ install_dir }}"
+        - "{{ cockpit_module_install_dir }}"
 
     - name: Clone repo SSH-based (custom-keys are present)
       become: true
@@ -155,14 +159,85 @@
         hour: "1"
 
 ## copy config files in server_config to their location
+## FIXME: craft nginx config for VM. Missing A LOT of stuff.
+## - some nginx modules are missing and should be removed
+## - Let's Encrypt certificates aren't there, should be removed from config files
+
+    # - name: config files in server_config to their location
+    #   ansible.builtin.copy:
+    #     src: "{{ install_dir }}/server_config/"
+    #     dest: /
+    #     force: true
+    #     directory_mode: true
 
 ## create path /var/www/html/calvinballconsortium and create symlinks to useuful folder: audio, dev.dist, dist, image, resources, save (bon pas vraiment besoin de save lul)
 
+    - name: create path /var/www/html/calvinballconsortium
+      ansible.builtin.file:
+        path: "{{ web_content_dir }}"
+        state: directory
+
+
+    - name: Prepare folders for serve
+      ansible.builtin.file: 
+        path: "{{ item.src }}"
+        state: directory
+        owner: developer
+        group: developer
+      loop: "{{ web_content_folders }}"
+
+    - name: Create symbolic link 
+      file:
+        src: "{{ item.src }}"
+        dest: "{{ item.dst }}"
+        state: link
+      loop: "{{ web_content_folders }}"
+
 ## install cockpit module cockpit-navigator (.deb focal, from their github webpage)
+    - name: install cockpit module cockpit-navigator
+      ansible.builtin.apt:
+        deb: https://github.com/45Drives/cockpit-navigator/releases/download/v0.5.10/cockpit-navigator_0.5.10-1focal_all.deb
 
 ## git clone and build the cockpit module
 
+    - name: Clone cockpit module repo SSH-based (custom-keys are present)
+      become: true
+      become_method: su
+      become_user: developer
+      when: custom_keys is success
+      ansible.builtin.git:
+        repo: git@github.com:yattoz/cockpit-cvb-rebuild-site.git
+        dest: "{{ cockpit_module_install_dir }}"
+        key_file: /home/developer/.ssh/id_rsa
+        accept_hostkey: true
+
+    - name: Fallback - Clone repo HTTPS-based
+      become: true
+      become_method: su
+      become_user: developer
+      when: custom_keys is skipped
+      ansible.builtin.git:
+        repo: https://github.com/yattoz/cockpit-cvb-rebuild-site
+        dest: "{{ cockpit_module_install_dir }}"
+        accept_hostkey: true
+    
+    - name: Build cockpit module (we use Debian's repo NPM, it's old but it works.)
+      become: true
+      become_method: su
+      become_user: developer
+      ansible.builtin.shell: |
+        npm install
+        make
+
 ## create symlink  /usr/share/cockpit/cvb-rebuild-website -> /home/yattoz/cockpit-cvb-rebuild-site/dist/ OR make-install it (it's copied to the correct location)
+
+    - name: Create cockpit module symbolic link 
+      file:
+        src: "{{ cockpit_module_install_dir }}/dist"
+        dest: "/usr/share/cockpit/cvb-rebuild-site"
+        state: link
+
+
 
 ## install systemd service for dbus_watcher
 

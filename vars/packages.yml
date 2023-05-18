@@ -9,6 +9,8 @@ debian_runtime_suite:
   - ruby
   - ruby-dev
   - bundler
+  - nodejs
+  - npm
 
 debian_nokogiri_build:
   - patch
