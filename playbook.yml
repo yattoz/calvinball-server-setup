@@ -44,8 +44,9 @@
 ## install stuff:
 
     - name: Install debian packages
-      ansible.builtin.package:
+      ansible.builtin.apt:
         name: "{{ debian_packages }}"
+        update_cache: true
         state: present
 
     - name: update cache for aptitude
