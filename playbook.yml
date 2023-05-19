@@ -40,7 +40,9 @@
         shell: /bin/bash
         generate_ssh_key: true
         ssh_key_bits: 2048
-        ssh_key_file: /home/{{ developer_user }}/.ssh/id_rsa
+        ssh_key_file: /home/{{ developer_user }}/.ssh/id_rsa_ansible
+        group: "{{ podcast_group }}" ## this is needed to send dbus messages too. 
+        append: true
 
 ## install stuff:
 
@@ -70,20 +72,38 @@
         content: "Host github.com\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/id_rsa"
         dest: /home/developer/.ssh/config
 
+
+    - name: check for id_rsa
+      stat: path=/tmp/id_rsa
+      register: custom_keys
+
     - name: replace id_rsa keys from the ones in /tmp/ if they are here
-      when: "'/tmp/id_rsa' is file"
+      when: custom_keys.stat.exists
       ansible.builtin.shell: |
         rm /home/developer/.ssh/id_rsa*
         mv /tmp/id_rsa* /home/developer/.ssh/
         chown developer:developer /home/developer/.ssh/*
         chmod 600 /home/developer/.ssh/*
-      register: custom_keys
+
+    - name: Add id_rsa.pub as authorized_keys
+      become: true
+      become_user: developer
+      when: custom_keys.stat.exists
+      ansible.builtin.copy:
+        src: /home/developer/.ssh/id_rsa.pub
+        dest: /home/developer/.ssh/authorized_keys
+
+
+    - name: check for id_rsa in developer (in case it's already been installed)
+      become: true
+      become_user: developer
+      stat: path=~/.ssh/id_rsa
+      register: custom_keys #re-register
 
     - name: Register github host key
       become: true
       become_user: developer
-      ansible.builtin.command:
-        cmd: ssh-keyscan -t rsa github.com >> /home/developer/.ssh/known_hosts
+      ansible.builtin.shell: ssh-keyscan -t rsa github.com >> /home/developer/.ssh/known_hosts
 
     - name: Prepare folders for clone
       ansible.builtin.file: 
@@ -99,7 +119,7 @@
       become: true
       become_method: su
       become_user: developer
-      when: custom_keys is success
+      when: custom_keys.stat.exists
       ansible.builtin.git:
         repo: git@github.com:yattoz/calvinball-website.git
         dest: "{{ install_dir }}"
@@ -110,7 +130,7 @@
       become: true
       become_method: su
       become_user: developer
-      when: custom_keys is skipped
+      when: custom_keys.stat.exists == false
       ansible.builtin.git:
         repo: https://github.com/yattoz/calvinball-website
         dest: "{{ install_dir }}"
@@ -136,13 +156,21 @@
     - name: Replace 'origin' HTTP-based remote with SSH-based
       become: true
       become_user: developer
-      when: custom_keys is skipped
+      when: custom_keys.stat.exists == false
       ansible.builtin.shell: |
         cd "{{ install_dir }}"
         git remote rm origin
         git remote add origin git@github.com:yattoz/calvinball-website.git
 
 ## create cron jobs
+
+    - name: set MAILTO to nothing
+      ansible.builtin.cron:
+        env: true
+        name: MAILTO
+        job: ""
+        state: present
+
     - name: create cron job for periodic remote checks
       ansible.builtin.cron:
         name: "periodic remote checks"
@@ -163,12 +191,26 @@
 ## - some nginx modules are missing and should be removed
 ## - Let's Encrypt certificates aren't there, should be removed from config files
 
-    # - name: config files in server_config to their location
-    #   ansible.builtin.copy:
-    #     src: "{{ install_dir }}/server_config/"
-    #     dest: /
-    #     force: true
-    #     directory_mode: true
+    - name: serve directory locally for nginx
+      ansible.builtin.command: 
+        cmd: sed -i "s|root /var/www/html;|root /var/www/html/calvinballconsortium/dist;|g" /etc/nginx/sites-available/default 
+    
+    - name: Reload service nginx, in all cases
+      ansible.builtin.systemd:
+        name: nginx.service
+        state: reloaded
+
+    - name: install dbus config
+      ansible.builtin.copy:
+        src: "{{ install_dir }}/server_config/usr/share/dbus-1/system.d/"
+        dest: /usr/share/dbus-1/system.d/
+        force: true
+        directory_mode: true
+
+    - name: Reload service dbus, in all cases
+      ansible.builtin.systemd:
+        name: dbus.service
+        state: reloaded
 
 ## create path /var/www/html/calvinballconsortium and create symlinks to useuful folder: audio, dev.dist, dist, image, resources, save (bon pas vraiment besoin de save lul)
 
@@ -204,7 +246,7 @@
       become: true
       become_method: su
       become_user: developer
-      when: custom_keys is success
+      when: custom_keys.stat.exists
       ansible.builtin.git:
         repo: git@github.com:yattoz/cockpit-cvb-rebuild-site.git
         dest: "{{ cockpit_module_install_dir }}"
@@ -215,7 +257,7 @@
       become: true
       become_method: su
       become_user: developer
-      when: custom_keys is skipped
+      when: custom_keys.stat.exists == false
       ansible.builtin.git:
         repo: https://github.com/yattoz/cockpit-cvb-rebuild-site
         dest: "{{ cockpit_module_install_dir }}"
@@ -238,8 +280,17 @@
         dest: "/usr/share/cockpit/cvb-rebuild-site"
         state: link
 
-## FIXME: fix cockpit paths to point to /opt/
-
 ## install systemd service for dbus_watcher
 
+    - name: copy dbus service
+      ansible.builtin.copy:
+        src: "{{ install_dir }}/scripts/calvinball_daemon.service"
+        dest: "/etc/systemd/user/calvinball_daemon.service"
 
+
+    - name: Reload calvinball_daemon.service
+      ansible.builtin.systemd:
+        name: calvinball_daemon.service
+        state: reloaded
+        enabled: true
+        daemon_reload: true
