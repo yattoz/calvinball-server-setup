@@ -28,8 +28,8 @@
         state: present
         password: "{{ item | password_hash('sha512','A512') }}"
         shell: /bin/bash
-        group: "{{ podcast_group }}"
-        append: true
+        groups: "{{ podcast_group }}"
+        append: yes
       loop: "{{ podcast_keys }}"
 
     - name: Create developer user
@@ -41,8 +41,18 @@
         generate_ssh_key: true
         ssh_key_bits: 2048
         ssh_key_file: /home/{{ developer_user }}/.ssh/id_rsa_ansible
-        group: "{{ podcast_group }}" ## this is needed to send dbus messages too. 
-        append: true
+        groups: "{{ podcast_group }}" ## this is needed to send dbus messages too. 
+        append: yes
+
+    - name: Prepare folders for clone
+      ansible.builtin.file: 
+        path: "{{ item }}"
+        state: directory
+        owner: developer
+        group: developer # let's test immediately if group "developer" exists.
+      loop:
+        - "{{ install_dir }}"
+        - "{{ cockpit_module_install_dir }}"
 
 ## install stuff:
 
@@ -51,10 +61,6 @@
         name: "{{ debian_packages }}"
         update_cache: true
         state: present
-
-    - name: update cache for aptitude
-      ansible.builtin.apt:
-        update_cache: True
 
     - name: Install latest hugo-extend
       ansible.builtin.apt:
@@ -105,16 +111,6 @@
       become_user: developer
       ansible.builtin.shell: ssh-keyscan -t rsa github.com >> /home/developer/.ssh/known_hosts
 
-    - name: Prepare folders for clone
-      ansible.builtin.file: 
-        path: "{{ item }}"
-        state: directory
-        owner: developer
-        group: developer
-      loop:
-        - "{{ install_dir }}"
-        - "{{ cockpit_module_install_dir }}"
-
     - name: Clone repo SSH-based (custom-keys are present)
       become: true
       become_method: su
@@ -125,6 +121,7 @@
         dest: "{{ install_dir }}"
         key_file: /home/developer/.ssh/id_rsa
         accept_hostkey: true
+        version: devel
 
     - name: Fallback - Clone repo HTTPS-based
       become: true
@@ -136,6 +133,7 @@
         dest: "{{ install_dir }}"
         key_file: /home/developer/.ssh/id_rsa
         accept_hostkey: true
+        version: devel
 
     - name: install ruby dependencies
       become: true
@@ -150,17 +148,8 @@
       become_method: su
       become_user: developer
       ansible.builtin.command:
-        cmd: bundle exec ruby scripts/podcast_resources.rb --nodownload
+        cmd: bundle exec ruby scripts/podcast_resources.rb --nodownload --localserve
         chdir: "{{ install_dir }}"
-
-    - name: Replace 'origin' HTTP-based remote with SSH-based
-      become: true
-      become_user: developer
-      when: custom_keys.stat.exists == false
-      ansible.builtin.shell: |
-        cd "{{ install_dir }}"
-        git remote rm origin
-        git remote add origin git@github.com:yattoz/calvinball-website.git
 
 ## create cron jobs
 
@@ -198,7 +187,7 @@
     - name: Reload service nginx, in all cases
       ansible.builtin.systemd:
         name: nginx.service
-        state: reloaded
+        state: restarted
 
     - name: install dbus config
       ansible.builtin.copy:
@@ -210,7 +199,7 @@
     - name: Reload service dbus, in all cases
       ansible.builtin.systemd:
         name: dbus.service
-        state: reloaded
+        state: restarted
 
 ## create path /var/www/html/calvinballconsortium and create symlinks to useuful folder: audio, dev.dist, dist, image, resources, save (bon pas vraiment besoin de save lul)
 
@@ -252,6 +241,7 @@
         dest: "{{ cockpit_module_install_dir }}"
         key_file: /home/developer/.ssh/id_rsa
         accept_hostkey: true
+        version: devel
 
     - name: Fallback - Clone repo HTTPS-based
       become: true
@@ -262,6 +252,7 @@
         repo: https://github.com/yattoz/cockpit-cvb-rebuild-site
         dest: "{{ cockpit_module_install_dir }}"
         accept_hostkey: true
+        version: devel
     
     - name: Build cockpit module (we use Debian's repo NPM, it's old but it works.)
       become: true
@@ -285,12 +276,20 @@
     - name: copy dbus service
       ansible.builtin.copy:
         src: "{{ install_dir }}/scripts/calvinball_daemon.service"
-        dest: "/etc/systemd/user/calvinball_daemon.service"
+        dest: "/etc/systemd/system/calvinball_daemon.service"
 
 
     - name: Reload calvinball_daemon.service
       ansible.builtin.systemd:
         name: calvinball_daemon.service
-        state: reloaded
+        state: restarted
         enabled: true
         daemon_reload: true
+
+## test dbus signal
+
+    - name: run site compilation through dbus signal
+      ansible.builtin.command:
+        become: true
+        become_user: leretourdujeudi
+        cmd: dbus-send --system --print-reply --type=method_call --dest="fr.calvinballconsortium.service" /fr/calvinballconsortium/runner fr.calvinballconsortium.interface.run string:"localserve" string:"leretourdujeudi"
