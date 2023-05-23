@@ -11,6 +11,24 @@ debian_runtime_suite:
   - bundler
   - nodejs
   - npm
+  - at
+  - cron
+
+
+# unused for now, could be handy one day. Dependencies for ruby compilation.
+# Follow doc here: https://www.ruby-lang.org/en/documentation/installation/
+# wget https://cache.ruby-lang.org/pub/ruby/3.2/ruby-3.2.2.tar.gz
+# tar -xzf ruby-3.2.2.tar.gz
+# cd ruby-3.2.2
+# $ ./configure
+# $ make
+# $ sudo make install
+debian_compile_ruby:
+  - libgdbm-dev 
+  - libncurses-dev 
+  - libncurses5-dev 
+  - libreadline-dev 
+  - libyaml-dev
 
 debian_nokogiri_build:
   - patch
@@ -22,13 +40,17 @@ debian_rmagick_build:
   - imagemagick
   - pngquant
 
-debian_utilities:
-  - at
-  - cron
-
 debian_web_access:
   - nginx-full
-  - python3-certbot-nginx
   - cockpit
 
-debian_packages: "{{debian_runtime_suite + debian_nokogiri_build + debian_rmagick_build + debian_utilities + debian_web_access }}"
+# "graduated" are packages meant for production server. You would "graduate" an installation from development to production.
+
+debian_graduated_web:
+  - python3-certbot-nginx
+  - mumble-server
+
+
+debian_packages: "{{ debian_runtime_suite + debian_nokogiri_build + debian_rmagick_build + debian_web_access }}"
+
+debian_graduated_packages: "{{ debian_graduated_web }}"
