@@ -45,3 +45,6 @@ web_site_folders:
       dst: "{{ web_content_dir }}/dist"
     - src: "{{ install_dir }}/dev.dist"
       dst: "{{ web_content_dir }}/dev.dist" 
+
+cockpit_navigator_deb_url: "https://github.com/45Drives/cockpit-navigator/releases/download/v0.5.10/cockpit-navigator_0.5.10-1focal_all.deb"
+hugo_deb_url: "https://github.com/gohugoio/hugo/releases/download/v0.111.3/hugo_extended_0.111.3_linux-amd64.deb"
