@@ -209,20 +209,20 @@
         state: directory
 
 
-    - name: Prepare folders for serve
+    - name: Prepare folders for assets (audio, images, resources, docs)
       ansible.builtin.file: 
         path: "{{ item.src }}"
         state: directory
         owner: developer
         group: developer
-      loop: "{{ web_content_folders }}"
+      loop: "{{ web_content_folders + docs_content_folders }}"
 
     - name: Create symbolic link 
       file:
         src: "{{ item.src }}"
         dest: "{{ item.dst }}"
         state: link
-      loop: "{{ web_content_folders }}"
+      loop: "{{ web_content_folders + web_site_folders }}"
 
 ## install cockpit module cockpit-navigator (.deb focal, from their github webpage)
     - name: install cockpit module cockpit-navigator

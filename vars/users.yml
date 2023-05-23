@@ -25,16 +25,22 @@ podcast_group: podcasters
 
 developer_user: developer
 
-
+assets_content_dir: /calvinballconsortium
 web_content_dir: /var/www/html/calvinballconsortium
 
 web_content_folders:
-    - src: "{{ install_dir }}/audio"
+    - src: "{{ assets_content_dir }}/audio"
       dst: "{{ web_content_dir }}/audio"
-    - src: "{{ install_dir }}/images"
+    - src: "{{ assets_content_dir }}/images"
       dst: "{{ web_content_dir }}/images"
-    - src: "{{ install_dir }}/resources"
-      dst: "{{ web_content_dir }}/resources"  
+    - src: "{{ assets_content_dir }}/resources"
+      dst: "{{ web_content_dir }}/resources"
+
+docs_content_folders:
+    - src: "{{ assets_content_dir }}/docs" 
+      dst: "" #i'd like it to be created by the playbook, but no need for it to have symlink in web_content_dir
+
+web_site_folders:
     - src: "{{ install_dir }}/dist"
       dst: "{{ web_content_dir }}/dist"
     - src: "{{ install_dir }}/dev.dist"
