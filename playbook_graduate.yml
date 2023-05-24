@@ -1,0 +1,37 @@
+
+- name: The Play
+  hosts: localhost
+  vars_files:
+    - vars/users.yml
+    - vars/packages.yml
+    - vars/runtime_credentials.vault.yml
+    - vars/graduated_credentials.vault.yml
+  vars:
+    install_dir: /opt/calvinball-website
+    cockpit_module_install_dir: /opt/cockpit_modules/cvb-rebuild-site
+
+  task:
+    - name: Add a backup server host in ssh config
+      become: true
+      become_user: developer
+      ansible.builtin.blockinfile:
+        path: /home/developer/.ssh/config
+        block: >- 
+          Host {{ vault_backup_server_host }}
+            HostName {{ vault_backup_server_address }}
+            User {{ vault_backup_server_user }}
+            IdentityFile ~/.ssh/{{ vault_id_rsa_backup }}
+
+    - name: Template backup credentials
+      ansible.builtin.template:
+        src: "{{ install_dir }}/backup_to_nas.sh.example"
+        dest: "{{ install_dir }}/backup_to_nas.sh"
+        mode: 'u+rwx'
+
+    - name: Cron job to backup to NAS
+      ansible.builtin.cron:
+        name: "backup to NAS"
+        user: developer
+        job: "{{ install_dir }}/backup_to_nas.sh"
+        minute: "0"
+        hour: "1"
