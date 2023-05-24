@@ -318,8 +318,6 @@
         src: "{{ install_dir }}/scripts/calvinball_daemon.service"
         dest: "/etc/systemd/system/calvinball_daemon.service"
         mode: preserve
-        daemon_reload: true
-
 
     - name: Reload calvinball_daemon.service
       ansible.builtin.systemd:
