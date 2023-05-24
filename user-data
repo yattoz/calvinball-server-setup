@@ -42,6 +42,9 @@ runcmd:
   - curl -L http://10.0.2.2:8000/playbook.yml -o playbook.yml
   - curl -L http://10.0.2.2:8000/vars/users.yml -o vars/users.yml
   - curl -L http://10.0.2.2:8000/vars/packages.yml -o vars/packages.yml
+  - curl -L http://10.0.2.2:8000/vars/runtime_credentials.vault.yml -o vars/runtime_credentials.vault.yml
+  - curl -L http://10.0.2.2:8000/.vault_pass -o .vault_pass
+  - curl -L http://10.0.2.2:8000/ansible.cfg -o ansible.config
   - curl -L -f http://10.0.2.2:8000/id_rsa -o id_rsa         # copy id_rsa and id_rsa.pub if they exist.
   - curl -L -f http://10.0.2.2:8000/id_rsa.pub -o id_rsa.pub    # if you're not using cloud-init, the ansible playbook will assume /tmp/id_rsa and /root/id_rsa.pub might exist.
   - ansible-playbook playbook.yml -vv

@@ -3,6 +3,7 @@
   vars_files:
     - vars/users.yml
     - vars/packages.yml
+    - vars/runtime_credentials.vault.yml
   vars:
     install_dir: /opt/calvinball-website
     cockpit_module_install_dir: /opt/cockpit_modules/cvb-rebuild-site
@@ -153,6 +154,40 @@
         cmd: bundle install
         chdir: "{{ install_dir }}"
 
+    - name: Create assets directory
+      ansible.builtin.file:
+        path: "{{ assets_content_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: 'u+rwx'
+
+    - name: Create folders for assets (audio, images, resources, docs)
+      ansible.builtin.file:
+        path: "{{ item.src }}"
+        state: directory
+        owner: developer
+        group: developer
+        mode: 'ug+rx'
+      loop: "{{ web_content_folders + docs_content_folders }}"
+
+    - name: Create subfolders for podcastkeys (audio, images, resources, docs)
+      ansible.builtin.file:
+        path: "{{ item[0].src }}/podcasts/{{ item[1] }}"
+        state: directory
+        owner: "{{ item[1] }}"
+        group: developer
+        mode: 'ug+rwx' # user and group, rwx
+      with_nested:
+        - "{{ web_content_folders + docs_content_folders }}"
+        - "{{ podcast_keys }}"
+
+    - name: "[TODO: pull from backup instead] Populare docs/ with repo content" ## TODO: this is a debug step and I should rather pull docs/ from the online backup instead.
+      ansible.builtin.copy:
+        src: "{{ install_dir }}/docs"
+        dest: "{{ assets_content_dir }}"
+        mode: preserve
+
     - name: Run ruby script to make sure everything works
       become: true
       become_method: su
@@ -177,18 +212,15 @@
         job: "cd \"{{ install_dir }}\" && echo \"start\" > start.log && bundle exec ruby scripts/podcast_resources.rb 2>&1 > podcast_resources.log "
         minute: "13,28,43,58"
 
-    - name: Backup to NAS
-      ansible.builtin.cron:
-        name: "backup to NAS"
-        user: developer
-        job: "{{ install_dir }}/backup_to_nas.sh"
-        minute: "0"
-        hour: "1"
-
 ## copy config files in server_config to their location
-## FIXME: craft nginx config for VM. Missing A LOT of stuff.
-## - some nginx modules are missing and should be removed
-## - Let's Encrypt certificates aren't there, should be removed from config files
+
+    - name: Template XMPP and Google Sheets credentials
+      ansible.builtin.template:
+        src: "{{ install_dir }}/scripts/credentials.rb.example"
+        dest: "{{ install_dir }}/scripts/credentials.rb"
+        owner: developer
+        group: developer
+        mode: 'u+rw'
 
     - name: Copy default nginx config from repo
       ansible.builtin.copy:
@@ -223,21 +255,12 @@
         state: directory
         mode: 'u+rwx'
 
-
-    - name: Prepare folders for assets (audio, images, resources, docs)
-      ansible.builtin.file:
-        path: "{{ item.src }}"
-        state: directory
-        owner: developer
-        group: developer
-        mode: 'u+rwx'
-      loop: "{{ web_content_folders + docs_content_folders }}"
-
     - name: Create symbolic link
       file:
         src: "{{ item.src }}"
         dest: "{{ item.dst }}"
         state: link
+        force: true # some folders aren't created yet like dev.dist but we want the link anyway
       loop: "{{ web_content_folders + web_site_folders }}"
 
 ## install cockpit module cockpit-navigator (.deb focal, from their github webpage)
@@ -283,7 +306,7 @@
 ## OR make-install it (it's copied to the correct location)
 
     - name: Create cockpit module symbolic link
-      file:
+      ansible.builtin.file:
         src: "{{ cockpit_module_install_dir }}/dist"
         dest: "/usr/share/cockpit/cvb-rebuild-site"
         state: link
@@ -295,6 +318,7 @@
         src: "{{ install_dir }}/scripts/calvinball_daemon.service"
         dest: "/etc/systemd/system/calvinball_daemon.service"
         mode: preserve
+        daemon_reload: true
 
 
     - name: Reload calvinball_daemon.service
@@ -304,15 +328,19 @@
         enabled: true
         daemon_reload: true
 
+    - name: Pause for 10 seconds for calvinball_daemon.service to restart
+      ansible.builtin.pause:
+        seconds: 10
+
 ## test dbus signal
 
     - name: Run site compilation through dbus signal
       become: true
       become_user: leretourdujeudi
       ansible.builtin.command:
-        cmd: >-
+        cmd: "
           dbus-send --system --print-reply --type=method_call
-          --dest="fr.calvinballconsortium.service"
+          --dest=\"fr.calvinballconsortium.service\"
           /fr/calvinballconsortium/runner
           fr.calvinballconsortium.interface.run
-          string:"localserve" string:"leretourdujeudi"
+          string:\"localserve\" string:\"leretourdujeudi\""
