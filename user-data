@@ -37,7 +37,7 @@ packages:
 # deployment node may simply run ansible without cloud-init.
 runcmd:
   - ssh-keygen -A
-  - cd tmp
+  - cd /root
   - mkdir vars
   - curl -L http://10.0.2.2:8000/playbook.yml -o playbook.yml
   - curl -L http://10.0.2.2:8000/vars/users.yml -o vars/users.yml
