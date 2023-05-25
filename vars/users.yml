@@ -37,7 +37,7 @@ web_content_folders:
       dst: "{{ web_content_dir }}/resources"
 
 docs_content_folders:
-    - src: "{{ assets_content_dir }}/docs" 
+    - src: "{{ assets_content_dir }}/docs/podcasts" 
       dst: "" #i'd like it to be created by the playbook, but no need for it to have symlink in web_content_dir
 
 web_site_folders:

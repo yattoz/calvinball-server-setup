@@ -7,6 +7,7 @@
   vars:
     install_dir: /opt/calvinball-website
     cockpit_module_install_dir: /opt/cockpit_modules/cvb-rebuild-site
+    playbook_dir: /root
 
   tasks:
     - name: Ping
@@ -84,18 +85,26 @@
 
     - name: Check for id_rsa
       ansible.builtin.stat:
-        path: /tmp/id_rsa
+        path: "{{ playbook_dir }}/id_rsa"
       register: custom_keys
 
-    - name: Replace id_rsa keys from the ones in /tmp/ if they are here
+    - name: Replace id_rsa keys from the ones in playbook_dir if they are here
       when: custom_keys.stat.exists
-      ansible.builtin.shell: |
-        rm /home/developer/.ssh/id_rsa*
-        mv /tmp/id_rsa* /home/developer/.ssh/
-        chown developer:developer /home/developer/.ssh/*
-        chmod 600 /home/developer/.ssh/*
-      register: replace_custom_keys
-      changed_when: replace_custom_keys.rc != 0 # <- Uses the return code to define when the task has changed.
+      ansible.builtin.copy: 
+        src: "{{ playbook_dir }}/id_rsa" 
+        dest: /home/developer/.ssh/
+        owner: developer
+        group: developer
+        mode: "0600"
+
+    - name: Replace id_rsa.pub keys from the ones in playbook_dir if they are here
+      when: custom_keys.stat.exists
+      ansible.builtin.copy: 
+        src: "{{ playbook_dir }}/id_rsa.pub" 
+        dest: /home/developer/.ssh/
+        owner: developer
+        group: developer
+        mode: "0600"
 
     - name: Add id_rsa.pub as authorized_keys
       become: true
@@ -104,8 +113,9 @@
       ansible.builtin.copy:
         src: /home/developer/.ssh/id_rsa.pub
         dest: /home/developer/.ssh/authorized_keys
-        mode: preserve
-
+        owner: developer
+        group: developer
+        mode: "0600"
 
     - name: Check for id_rsa in developer (in case it's already been installed)
       become: true
@@ -173,7 +183,7 @@
 
     - name: Create subfolders for podcastkeys (audio, images, resources, docs)
       ansible.builtin.file:
-        path: "{{ item[0].src }}/podcasts/{{ item[1] }}"
+        path: "{{ item[0].src }}/{{ item[1] }}"
         state: directory
         owner: "{{ item[1] }}"
         group: developer
@@ -182,11 +192,25 @@
         - "{{ web_content_folders + docs_content_folders }}"
         - "{{ podcast_keys }}"
 
-    - name: "[TODO: pull from backup instead] Populare docs/ with repo content" ## TODO: this is a debug step and I should rather pull docs/ from the online backup instead.
+    - name: "[TODO: pull from backup instead] Populate docs/ with repo content" ## TODO: this is a debug step and I should rather pull docs/ from the online backup instead.
       ansible.builtin.copy:
         src: "{{ install_dir }}/docs"
         dest: "{{ assets_content_dir }}"
-        mode: preserve
+        owner: developer
+        group: developer
+        mode: 'ug+rwx' # user and group, rwx
+      check_mode: false
+        
+    - name: Set file permissions in assets directory
+      ansible.builtin.file:
+        path: "{{ item[0].src }}/{{ item[1] }}"
+        owner: "{{ item[1] }}"
+        group: developer
+        mode: 'ug+rwx' # user and group, rwx
+        recurse: true
+      with_nested:
+        - "{{ web_content_folders + docs_content_folders }}"
+        - "{{ podcast_keys }}"
 
     - name: Run ruby script to make sure everything works
       become: true
