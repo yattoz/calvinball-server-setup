@@ -13,6 +13,7 @@ debian_runtime_suite:
   - npm
   - at
   - cron
+  - rclone
 
 
 # unused for now, could be handy one day. Dependencies for ruby compilation.

@@ -192,14 +192,42 @@
         - "{{ web_content_folders + docs_content_folders }}"
         - "{{ podcast_keys }}"
 
-    - name: "[TODO: pull from backup instead] Populate docs/ with repo content" ## TODO: this is a debug step and I should rather pull docs/ from the online backup instead.
+## Configure backup access, also useful for fetching/populating
+
+    - name: Add a backup server host in ssh config
+      become: true
+      become_user: developer
+      ansible.builtin.blockinfile:
+        path: /home/developer/.ssh/config
+        block: | 
+          Host {{ vault_backup_server_host }}
+            HostName {{ vault_backup_server_host }}
+            User {{ vault_backup_server_user }}
+            IdentityFile {{ vault_backup_server_ssh_key_file }}
+
+    - name: Write backup ssh key
+      become: true
+      become_user: developer
       ansible.builtin.copy:
-        src: "{{ install_dir }}/docs"
-        dest: "{{ assets_content_dir }}"
-        owner: developer
-        group: developer
-        mode: 'ug+rwx' # user and group, rwx
-      check_mode: false
+        content: "{{ vault_backup_server_ssh_key }}"
+        dest: "{{ vault_backup_server_ssh_key_file }}"
+        mode: "0400"
+
+    - name: Create rclone configuration
+      become: true
+      become_user: developer
+      ansible.builtin.command:
+        cmd:  "rclone config create {{ vault_rclone_config_name }} sftp
+          host {{ vault_backup_server_host }}
+          user {{ vault_backup_server_user }}
+          port {{ vault_backup_server_port }} 
+          key_file {{ vault_backup_server_ssh_key_file }}"
+
+    - name: Fetch docs/ from backup, to populate website
+      become: true
+      become_user: developer
+      ansible.builtin.command:
+        cmd: "rclone copy {{ vault_rclone_config_name }}:{{ vault_backup_server_backup_dir }}/docs/ {{ assets_content_dir }}/docs"
         
     - name: Set file permissions in assets directory
       ansible.builtin.file:
@@ -212,6 +240,8 @@
         - "{{ web_content_folders + docs_content_folders }}"
         - "{{ podcast_keys }}"
 
+## Finally, run the thing once to make sure it actually runs OK
+
     - name: Run ruby script to make sure everything works
       become: true
       become_method: su
@@ -219,22 +249,6 @@
       ansible.builtin.command:
         cmd: bundle exec ruby scripts/podcast_resources.rb --nodownload --localserve
         chdir: "{{ install_dir }}"
-
-## create cron jobs
-
-    - name: Set MAILTO to nothing
-      ansible.builtin.cron:
-        env: true
-        name: MAILTO
-        job: ""
-        state: present
-
-    - name: Create cron job for periodic remote checks
-      ansible.builtin.cron:
-        name: "periodic remote checks"
-        user: developer
-        job: "cd \"{{ install_dir }}\" && echo \"start\" > start.log && bundle exec ruby scripts/podcast_resources.rb 2>&1 > podcast_resources.log "
-        minute: "13,28,43,58"
 
 ## copy config files in server_config to their location
 
