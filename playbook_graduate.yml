@@ -11,22 +11,28 @@
     cockpit_module_install_dir: /opt/cockpit_modules/cvb-rebuild-site
 
   task:
-    - name: Add a backup server host in ssh config
-      become: true
-      become_user: developer
-      ansible.builtin.blockinfile:
-        path: /home/developer/.ssh/config
-        block: >- 
-          Host {{ vault_backup_server_host }}
-            HostName {{ vault_backup_server_address }}
-            User {{ vault_backup_server_user }}
-            IdentityFile ~/.ssh/{{ vault_id_rsa_backup }}
 
     - name: Template backup credentials
       ansible.builtin.template:
         src: "{{ install_dir }}/backup_to_nas.sh.example"
         dest: "{{ install_dir }}/backup_to_nas.sh"
         mode: 'u+rwx'
+
+## create cron jobs
+
+    - name: Set MAILTO to nothing
+      ansible.builtin.cron:
+        env: true
+        name: MAILTO
+        job: ""
+        state: present
+
+    - name: Create cron job for periodic remote checks
+      ansible.builtin.cron:
+        name: "periodic remote checks"
+        user: developer
+        job: "cd \"{{ install_dir }}\" && echo \"start\" > start.log && bundle exec ruby scripts/podcast_resources.rb 2>&1 > podcast_resources.log "
+        minute: "13,28,43,58"
 
     - name: Cron job to backup to NAS
       ansible.builtin.cron:
