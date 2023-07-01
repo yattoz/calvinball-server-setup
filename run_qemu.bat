@@ -1,8 +1,10 @@
 
 :: Download image if not on disk yet
+::curl -L -C - https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-amd64.qcow2 -o dg.qcow2
+
+
 if not exist dg.qcow2 (
-    :: curl -L -C - https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2 -o dg.qcow2
-    curl -L -C - https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-amd64.qcow2 -o dg.qcow2
+    curl -L -C - https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2 -o dg.qcow2
 )
 
 if "%1"=="--clean" ( 
