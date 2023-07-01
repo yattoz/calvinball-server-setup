@@ -380,3 +380,48 @@
           /fr/calvinballconsortium/runner
           fr.calvinballconsortium.interface.run
           string:\"localserve\" string:\"leretourdujeudi\""
+
+
+## install nextcloud:
+
+# install docker
+    - name: install docker (use official install script)
+      ansible.builtin.command:
+        cmd: curl -fsSL https://get.docker.com | sudo sh
+
+# run docker-compose to create the container (without running it)
+
+    - name: create nextcloud-aio container
+      ansible.builtin.command:
+        chdir: "{{ install_dir }}/server_config/nextcloud_docker_compose"
+        cmd: docker compose create
+
+    - name: Copy nextcloud-aio docker service
+      ansible.builtin.copy:
+        src: "{{ install_dir }}/server_config/nextcloud_docker_compose/nextcloud-aio.service"
+        dest: "/etc/systemd/system/nextcloud-aio.service"
+        mode: preserve
+
+    - name: Reload nextcloud-aio.service
+      ansible.builtin.systemd:
+        name: nextcloud-aio.service
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: Pause for 10 seconds for nextcloud-aio.service to restart
+      ansible.builtin.pause:
+        seconds: 20
+
+    - name: Print message
+      ansible.builtin.debug:
+        msg: |
+          Please log in to https://nextcloud.calvinballconsortium.fr:8080 (or http://localhost:38080 ) and make sure you can see the AIO setup page.
+          Please note that you can't finish the install process in AIO if you're not using a dedicated domain name.
+        
+
+
+# now you have to log in https://nextcloud.calvinballconsortium.fr:8080 <- important to set up nextcloud
+# then when setup is done you can log in https://nextcloud.calvinballconsortium.fr (:443, normal) and the reverse proxy will work its magic
+
+

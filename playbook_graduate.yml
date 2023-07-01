@@ -41,3 +41,27 @@
         job: "{{ install_dir }}/backup_to_nas.sh"
         minute: "0"
         hour: "1"
+
+    - name: Copy all nginx config files
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: /etc/nginx/sites-available
+        mode: preserve
+      with_fileglob:
+        - "{{ install_dir }}/server_config/etc/nginx/sites-available/*"
+
+    - name: symlink sites-available to sites-enabled
+      file:
+        src: "/etc/nginx/sites-available/{{ item | basename }}"
+        dest: "/etc/nginx/sites-enabled/{{ item | basename }}"
+        state: link
+        force: true # some folders aren't created yet like dev.dist but we want the link anyway
+      with_fileglob:
+        - /etc/nginx/sites-available/*
+
+    - name: Reload nginx
+      ansible.builtin.systemd:
+        name: nginx.service
+        state: restarted
+        enabled: true
+        daemon_reload: true
