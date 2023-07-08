@@ -225,7 +225,7 @@
 
     - name: Check if file already exists
       ansible.builtin.command: 
-        cmd: ls {{ assets_content_dir }}/docs/podcasts
+        cmd: ls {{ assets_content_dir }}/docs/podcasts/calvinball/episodes
       register: file_exists
       ignore_errors: true
 
@@ -233,7 +233,8 @@
       become: true
       become_user: developer
       ansible.builtin.command:
-        cmd: "rclone copy {{ vault_rclone_config_name }}:{{ vault_backup_server_backup_dir }}/docs/ {{ assets_content_dir }}/docs"
+        cmd: "rclone copy {{ vault_rclone_config_name }}:{{ vault_backup_server_backup_dir }}{{ item.src }} {{ item.src }}"
+      loop: "{{ docs_content_folders }}"
       when: file_exists is failed
         
     - name: Set file permissions in assets directory
