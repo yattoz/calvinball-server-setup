@@ -21,9 +21,9 @@ Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
 
 ### Installation de la machine virtuelle
 
-- Exécuter `debian_hyperv.bat`: le script télécharge une image Debian Cloud et Python portable pour servir de serveur web
-- Attendre que le serveur web Python soit lancé
-- Ouvrir un autre terminal et lancer `run_qemu.bat`.
+- créer un fichier .vault_pass et mettre dedans le mot de passe des vault.
+- Exécuter `webserver.bat`: le script télécharge Python et lance un serveur web local pour cloud-init.
+- Ouvrir un autre terminal et lancer `run_qemu.bat`. Le script télécharge une image de Debian, lance cloud-init, récupère les fichiers ansible depuis l'hôte et lance le playbook.
 
 La machine virtuelle se lance et doit se pré-configurer à l'aide des fichiers `cloud-init` servis par le serveur web, puis ansible prend le relais !
 
