@@ -24,7 +24,7 @@
       ansible.builtin.command:
         cmd: "rclone copy {{ vault_rclone_config_name }}:{{ vault_backup_server_backup_dir }}{{ item.src }} {{ item.src }}"
       loop: "{{ web_content_folders }}"
-        
+
 
 ## create cron jobs
 

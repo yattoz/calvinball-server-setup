@@ -233,8 +233,7 @@
       become: true
       become_user: developer
       ansible.builtin.command:
-        cmd: "rclone copy {{ vault_rclone_config_name }}:{{ vault_backup_server_backup_dir }}{{ item.src }} {{ item.src }}"
-      loop: "{{ docs_content_folders }}"
+        cmd: "rclone copy {{ vault_rclone_config_name }}:{{ vault_backup_server_backup_dir }}{{ assets_content_dir }}/docs {{ assets_content_dir }}/docs"
       when: file_exists is failed
         
     - name: Set file permissions in assets directory
