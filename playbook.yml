@@ -223,11 +223,18 @@
           port {{ vault_backup_server_port }} 
           key_file {{ vault_backup_server_ssh_key_file }}"
 
+    - name: Check if file already exists
+      ansible.builtin.command: 
+        cmd: ls {{ assets_content_dir }}/docs/podcasts
+      register: file_exists
+      ignore_errors: true
+
     - name: Fetch docs/ from backup, to populate website
       become: true
       become_user: developer
       ansible.builtin.command:
         cmd: "rclone copy {{ vault_rclone_config_name }}:{{ vault_backup_server_backup_dir }}/docs/ {{ assets_content_dir }}/docs"
+      when: file_exists is failed
         
     - name: Set file permissions in assets directory
       ansible.builtin.file:
@@ -239,6 +246,7 @@
       with_nested:
         - "{{ web_content_folders + docs_content_folders }}"
         - "{{ podcast_keys }}"
+      when: file_exists is failed
 
 ## Finally, run the thing once to make sure it actually runs OK
 
