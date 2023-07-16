@@ -36,3 +36,28 @@ ansible-pull -u https://github.com/yattoz/calvinball-server-setup playbook.yml -
 ```
 
 Ca crée les utilisateurs, télécharge les paquets, installe plein de trucs.
+
+
+### Mémo d'installation
+
+- move les dossiers utiles dans un dossier temporaire
+  + ~/tout
+  + nginx folder
+  + .bashrc
+
+- installer debian 12
+- installer ansible
+- cloner le repo du ansible
+- créer le .vault_pass avec le password
+- lancer le playbook
+- check les mots de passe (je sais pas si ansible les réécrit ou pas)
+  + si réécrits, les réinitialiser
+- lance le playbook graduate
+- move les dossiers (audio, docs, resources, images) to assets location /calvinballconsortium
+- check le nginx + site + tous les sous-domaines
+- check le mumble, ça ne devrait pas avoir changé d'un poil
+- check le crontab
+- check les accès au serveur de backup et le xmpp-notif
+- check le cockpit, son certif (normalement géré par le reverse proxy nginx?)
+
+
