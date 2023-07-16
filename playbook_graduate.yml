@@ -18,12 +18,12 @@
         dest: "{{ install_dir }}/backup_to_nas.sh"
         mode: 'u+rwx'
 
-    - name: Fetch all files from backup
-      become: true
-      become_user: developer
-      ansible.builtin.command:
-        cmd: "rclone copy {{ vault_rclone_config_name }}:{{ vault_backup_server_backup_dir }}{{ item.src }} {{ item.src }}"
-      loop: "{{ web_content_folders }}"
+    # - name: Fetch all files from backup
+    #   become: true
+    #   become_user: developer
+    #   ansible.builtin.command:
+    #     cmd: "rclone copy {{ vault_rclone_config_name }}:{{ vault_backup_server_backup_dir }}{{ item.src }} {{ item.src }}"
+    #   loop: "{{ web_content_folders }}"
 
 
 ## create cron jobs
