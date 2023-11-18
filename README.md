@@ -46,9 +46,18 @@ Ca crée les utilisateurs, télécharge les paquets, installe plein de trucs.
   + .bashrc
 
 - installer debian 12
+
+tweaks:
+- remove php (now nextcloud runs on docker)
+- change sshd config 
+  + PermitRootLogin: no
+- fix nginx conf file
+
+
 - installer ansible
 - cloner le repo du ansible
 - créer le .vault_pass avec le password
+- créer les clés id_rsa id_rsa.pub
 - lancer le playbook
 - check les mots de passe (je sais pas si ansible les réécrit ou pas)
   + si réécrits, les réinitialiser
@@ -60,4 +69,6 @@ Ca crée les utilisateurs, télécharge les paquets, installe plein de trucs.
 - check les accès au serveur de backup et le xmpp-notif
 - check le cockpit, son certif (normalement géré par le reverse proxy nginx?)
 
+- check permissions dans /calvinballconsortium, tout doit appartenir au groupe developer par défaut
+- créer les symlinks dans tous les users
 

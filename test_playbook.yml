@@ -1,0 +1,58 @@
+
+- name: Test Playbook
+  hosts: localhost
+  vars_files:
+    - vars/users.yml
+    - vars/packages.yml
+    - vars/runtime_credentials.vault.yml
+  vars:
+    install_dir: /opt/calvinball-website
+    cockpit_module_install_dir: /opt/cockpit_modules/cvb-rebuild-site
+
+  tasks:
+
+    - name: Create subfolders for podcastkeys (audio, images, resources, docs)
+      ansible.builtin.file:
+        path: "{{ item[0].src }}/{{ item[1] }}"
+        state: directory
+        owner: "{{ item[1] }}"
+        group: developer
+        mode: 'ug+rwx' # user and group, rwx
+      with_nested:
+        - "{{ web_content_folders + docs_content_folders }}"
+        - "{{ podcast_keys }}"
+
+    - name: Write backup ssh key
+      become: true
+      become_user: developer
+      ansible.builtin.copy:
+        content: "{{ vault_backup_server_ssh_key }}"
+        dest: "{{ vault_backup_server_ssh_key_file }}"
+        mode: "0400"
+
+    - name: Create rclone configuration
+      become: true
+      become_user: developer
+      ansible.builtin.command:
+        cmd:  "rclone config create {{ vault_rclone_config_name }} sftp
+          host {{ vault_backup_server_host }}
+          user {{ vault_backup_server_user }}
+          port {{ vault_backup_server_port }} 
+          key_file {{ vault_backup_server_ssh_key_file }}"
+
+    - name: Fetch docs/ from backup, to populate website
+      become: true
+      become_user: developer
+      ansible.builtin.command:
+        cmd: "rclone copy {{ vault_rclone_config_name }}:{{ vault_backup_server_backup_dir }}/docs/ {{ assets_content_dir }}/docs"
+        
+    - name: Set file permissions in assets directory
+      ansible.builtin.file:
+        path: "{{ item[0].src }}/{{ item[1] }}"
+        owner: "{{ item[1] }}"
+        group: developer
+        mode: 'ug+rwx' # user and group, rwx
+        recurse: true
+      with_nested:
+        - "{{ web_content_folders + docs_content_folders }}"
+        - "{{ podcast_keys }}"

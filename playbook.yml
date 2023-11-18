@@ -383,7 +383,8 @@
       become_user: leretourdujeudi
       ansible.builtin.command:
         cmd: "
-          dbus-send --system --print-reply --type=method_call
+          dbus-send --system --print-reply --reply-timeout=120000
+          --type=method_call
           --dest=\"fr.calvinballconsortium.service\"
           /fr/calvinballconsortium/runner
           fr.calvinballconsortium.interface.run
