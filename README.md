@@ -17,11 +17,12 @@ Si vous n'utilisez pas Hyper-V, Vagrant devrait marcher aussi avec le Vagrantfil
 Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
 ```
 
-- Installer QEMU : [Télécharger QEMU](https://qemu.weilnetz.de/w64/qemu-w64-setup-20230424.exe)
+- Installer QEMU : [Télécharger QEMU](https://qemu.weilnetz.de/w64/)
 
 ### Installation de la machine virtuelle
 
 - créer un fichier .vault_pass et mettre dedans le mot de passe des vault.
+- copier `id_rsa` et `id_rsa.pub` à la racine du repo
 - Exécuter `webserver.bat`: le script télécharge Python et lance un serveur web local pour cloud-init.
 - Ouvrir un autre terminal et lancer `run_qemu.bat`. Le script télécharge une image de Debian, lance cloud-init, récupère les fichiers ansible depuis l'hôte et lance le playbook.
 
@@ -37,6 +38,13 @@ ansible-pull -u https://github.com/yattoz/calvinball-server-setup playbook.yml -
 
 Ca crée les utilisateurs, télécharge les paquets, installe plein de trucs.
 
+## Développer dans QEMU
+
+SSH est ouvert:
+
+```
+ssh -p 2222 developer@localhost
+```
 
 ### Mémo d'installation
 
