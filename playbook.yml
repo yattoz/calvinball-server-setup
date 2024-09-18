@@ -250,6 +250,14 @@
 
 ## Finally, run the thing once to make sure it actually runs OK
 
+    - name: install npm package (podlove-player, we serve it locally)
+      become: true
+      become_method: su
+      become_user: developer
+      ansible.builtin.command:
+        cmd: npm install
+        chdir: "{{ install_dir }}"
+
     - name: Run ruby script to make sure everything works
       become: true
       become_method: su
