@@ -44,6 +44,7 @@ debian_rmagick_build:
 debian_web_access:
   - nginx-full
   - nginx-extras
+  - fcgiwrap
   - cockpit
 
 # "graduated" are packages meant for production server. You would "graduate" an installation from development to production.

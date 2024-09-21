@@ -300,6 +300,12 @@
         name: dbus.service
         state: restarted
 
+    - name: Reload service fcgiwrap
+      ansible.builtin.systemd:
+        name: fscgiwrap.service
+        enabled: true
+        state: restarted
+
 ## create path /var/www/html/calvinballconsortium and create symlinks to useuful folder:
 ## audio, dev.dist, dist, image, resources
 
