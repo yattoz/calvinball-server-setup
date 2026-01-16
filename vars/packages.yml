@@ -46,14 +46,15 @@ debian_web_access:
   - nginx-extras
   - fcgiwrap
   - cockpit
+  - mumble-server
+  - fail2ban
 
 # "graduated" are packages meant for production server. You would "graduate" an installation from development to production.
 
 debian_graduated_web:
   - python3-certbot-nginx
   - certbot
-  - mumble-server
-  - fail2ban
+
 
 
 debian_packages: "{{ debian_runtime_suite + debian_nokogiri_build + debian_rmagick_build + debian_web_access }}"
